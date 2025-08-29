@@ -1,5 +1,5 @@
 import { useRouteError, isRouteErrorResponse } from 'react-router-dom';
-import NotFoundPage from './NotFound';
+import NotFoundPage from './NotFoundPage';
 
 const RouterErrorBoundary = () => {
   const error = useRouteError();
