@@ -1,12 +1,17 @@
 import './App.css'
-import NavBar from './components/Navbar';
+import ErrorBoundary from './components/errors/ErrorBoundary';
+import { RouterProvider } from 'react-router-dom';
+import router from '../Routes';
+
 
 function App() {
 
   return (
-    <div className='h-screen'>
-      <NavBar />
-    </div>
+    <>
+      <ErrorBoundary>
+        <RouterProvider router={router} />
+      </ErrorBoundary>
+    </>
   );
 }
 
