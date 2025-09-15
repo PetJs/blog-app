@@ -1,7 +1,8 @@
 import './App.css'
 import ErrorBoundary from './components/errors/ErrorBoundary';
 import { RouterProvider } from 'react-router-dom';
-import router from '../Routes';
+import router from './Routes';
+import { AuthProvider } from './context/authContext';
 
 
 function App() {
@@ -9,7 +10,9 @@ function App() {
   return (
     <>
       <ErrorBoundary>
-        <RouterProvider router={router} />
+        <AuthProvider>
+          <RouterProvider router={router} />
+        </AuthProvider>
       </ErrorBoundary>
     </>
   );
