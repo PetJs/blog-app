@@ -22,10 +22,10 @@ const NavBar = () => {
                 </NavLink>
 
                 <NavLink
-                to="/blog"
+                to="/myposts"
                 className={linkClass}
                 >
-                Blog
+                My Posts
                 </NavLink>
 
                 <NavLink
