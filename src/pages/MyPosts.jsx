@@ -59,6 +59,7 @@ const MyPost = () => {
           posts.map((post) => (
             <Card
               key={post.id}
+              id={post.id}
               image={post.image_url || "https://via.placeholder.com/300"}
               title={post.title}
               date={new Date(post.created_at).toDateString()}
