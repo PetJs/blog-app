@@ -28,12 +28,12 @@ const NavBar = () => {
                 My Posts
                 </NavLink>
 
-                <NavLink
-                to="/post"
+                {/* <NavLink
+                to="/posts/:id"
                 className={linkClass}
                 >
                 Post
-                </NavLink>
+                </NavLink> */}
             </nav>
         </div>
     );
