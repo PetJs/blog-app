@@ -9,6 +9,7 @@ import RouterErrorBoundary from './components/errors/RouteErrorBoundary';
 import NotFoundPage from './components/errors/NotFoundPage';
 import ProtectedRoute from './utils/ProtectedRoute';
 import CreatePost from './pages/CreatePost';
+import PostDetail from './pages/PostDetail';
 
 
 const router = createBrowserRouter([
@@ -40,6 +41,10 @@ const router = createBrowserRouter([
             <CreatePost />
           </ProtectedRoute>
         ),
+      },
+      {
+        path: "posts/:id",
+        element: <PostDetail/>
       }
     ],
   },
