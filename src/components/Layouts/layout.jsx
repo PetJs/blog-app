@@ -5,12 +5,15 @@ import Footer from "../Footer";
 
 const Layout = () => {
     return(
-        <div>
+        <div className="relative">
             <NavBar />
 
             <Outlet />
 
-            <Footer/>
+            <div className="fixed bg-white bottom-0 left-0 w-full">
+                <Footer/>
+            </div>
+            
         </div>
     )
 }
