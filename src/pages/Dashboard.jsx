@@ -66,6 +66,7 @@ const Dashboard = () => {
             {posts.map((post) => (
               <Card
                 key={post.id}
+                id={post.id}
                 image={post.image_url || "https://via.placeholder.com/300"}
                 title={post.title}
                 content={post.content}
