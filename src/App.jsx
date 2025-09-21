@@ -3,6 +3,7 @@ import ErrorBoundary from './components/errors/ErrorBoundary';
 import { RouterProvider } from 'react-router-dom';
 import router from './Routes';
 import { AuthProvider } from './context/authContext';
+import { PostsProvider } from './context/postContext';
 
 
 function App() {
@@ -11,7 +12,9 @@ function App() {
     <>
       <ErrorBoundary>
         <AuthProvider>
-          <RouterProvider router={router} />
+          <PostsProvider>
+            <RouterProvider router={router} />
+          </PostsProvider>
         </AuthProvider>
       </ErrorBoundary>
     </>

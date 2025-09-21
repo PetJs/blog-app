@@ -114,7 +114,7 @@ export default function CreatePost() {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onBlur={() => setTouched((prev) => ({ ...prev, title: true }))}
-          className={`p-2 rounded-md text-4xl font-bold border-2 
+          className={`p-2 rounded-md lg:text-4xl text-2xl font-bold border-2 
             ${touched.title && !title.trim() ? "border-red-500" : "border-none"}`}
         />
 
@@ -124,7 +124,7 @@ export default function CreatePost() {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           onBlur={() => setTouched((prev) => ({ ...prev, content: true }))}
-          className={`p-2 rounded-md border-2 h-96  text-2xl
+          className={`p-2 rounded-md border-2 h-96  lg:text-2xl text-xl
             ${touched.content && !content.trim() ? "border-red-500" : "border-none"}`}
             minRows={3}
         />

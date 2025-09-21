@@ -41,7 +41,7 @@ const Card = ({ id, image, title, date, content, author, className, imgStyle, ha
 
         {/* Author */}
         {author && (
-          <p className="text-xs text-gray-400 italic mt-1">By {author}</p>
+          <p className="text-xs text-gray-400 italic mt-1">By <span className="text-black font-bold ml-1">{author}</span></p>
         )}
       </div>
 
