@@ -15,18 +15,20 @@ const PostDetail = () => {
 
   // Map API fields to UI props
   const {
-    image_url,
+    image,
     title,
-    created_at,
+    date,
     content,
-    user,
+    author,
   } = post;
+
+  console.log(post)
 
   return (
     <div className="p-6">
-      {image_url && (
+      {image && (
         <img
-          src={image_url}
+          src={image}
           alt={title}
           className="w-full h-96 object-cover rounded-lg mb-6"
         />
@@ -35,10 +37,10 @@ const PostDetail = () => {
       <h1 className="text-4xl font-bold mb-2">{title}</h1>
       <div className="flex items-center gap-4 text-gray-500 text-sm mb-6">
         <p>
-          By <span className="font-semibold">{user?.username || "Unknown"}</span>
+          By <span className="font-semibold">{author || "Unknown"}</span>
         </p>
         <span>•</span>
-        <p>{new Date(created_at).toDateString()}</p>
+        <p>{date}</p>
       </div>
 
       <p className="text-lg leading-relaxed mb-12">{content}</p>

@@ -29,7 +29,7 @@ export const AuthProvider = ({ children }) => {
     const res = await API.post("/login", { email, password });
 
     const token = res.data.token;
-    const user = res.data.user || { username: "User" }; // fallback if backend doesn't send user
+    const user = res.data.user || { username: "User" }; 
 
     // set expiry (1 hour)
     const expiry = Date.now() + 60 * 60 * 1000;
