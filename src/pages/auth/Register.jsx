@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import AppInput from "../../components/ui/appInput";
 import Button from "../../components/ui/button";
 import { motion } from "framer-motion";
+import {Github} from "lucide-react"
 
 const Register = () => {
   const { register } = useAuth();
@@ -26,10 +27,9 @@ const Register = () => {
   };
 
   const socialIcons = [
-    { icon: "📸", href: "#" },
-    { icon: "💼", href: "#" },
-    { icon: "👍", href: "#" },
-  ];
+    { icon: <Github/>, href: "#" },
+      // { icon: <Google/>, href: "#" },
+];
 
   const handleMouseMove = (e) => {
     const rect = e.currentTarget.getBoundingClientRect();
