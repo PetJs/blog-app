@@ -1,42 +1,28 @@
-import Logo from "../assets/svgs/logo.svg";
 import { NavLink } from "react-router-dom";
+import { Volume2 } from "lucide-react";
 
 const NavBar = () => {
-    const linkClass = ({ isActive }) =>
+  const linkClass = ({ isActive }) =>
     isActive
-      ? "text-black underline"
-      : "text-gray-300 hover:underline";
-    return (
-        <div className="flex justify-between items-center p-2">
-            <div className="flex gap-2 items-center">
-                <img src={Logo} alt="logo" />
-                <h1>Fragiment</h1>
-            </div>
+      ? "bg-[var(--primary)] text-[var(--on-primary)] px-3 py-1 text-xs font-bold tracking-widest uppercase"
+      : "text-[var(--primary)] px-3 py-1 text-xs font-bold tracking-widest uppercase hover:bg-[var(--primary)] hover:text-[var(--on-primary)] transition-colors";
 
-            <nav className="flex gap-6 font-medium">
-                <NavLink
-                to="/"
-                className={linkClass}
-                >
-                Home
-                </NavLink>
+  return (
+    <div className="flex justify-between items-center px-6 py-3 bg-[var(--on-primary)] border-b border-[var(--primary)]">
+      <h5 className="text-sm font-bold tracking-widest uppercase">LOG_CORE</h5>
 
-                <NavLink
-                to="/myposts"
-                className={linkClass}
-                >
-                My Posts
-                </NavLink>
+      <nav className="flex items-center">
+        <NavLink to="/" end className={linkClass}>INDEX</NavLink>
+        <NavLink to="/archive" className={linkClass}>ARCHIVE</NavLink>
+        <NavLink to="/manifesto" className={linkClass}>MANIFESTO</NavLink>
+        <NavLink to="/admin" className={linkClass}>ADMIN</NavLink>
+      </nav>
 
-                {/* <NavLink
-                to="/posts/:id"
-                className={linkClass}
-                >
-                Post
-                </NavLink> */}
-            </nav>
-        </div>
-    );
+      <button className="border-0 bg-transparent hover:bg-transparent p-1">
+        <Volume2 size={18} />
+      </button>
+    </div>
+  );
 };
 
 export default NavBar;
