@@ -1,62 +1,33 @@
 import { useNavigate } from "react-router-dom";
-import Button from "./button";
-import { Trash2 } from "lucide-react";
 
-const Card = ({ id, image, title, date, content, author, className, imgStyle, handleClick }) => {
+const Card = ({ id, image, title, date, desc, slug }) => {
   const navigate = useNavigate();
 
-  const handleCardClick = () => {
-    navigate(`/posts/${id}`, {
-      state: { image, title, date, content, author },
-    });
+  const handleClick = () => {
+    navigate(`/post/${slug || id}`, { state: { image, title, date, desc } });
   };
 
   return (
-    <div
-      onClick={handleCardClick}
-      className={`flex flex-col rounded-lg shadow-md bg-white p-2 cursor-pointer hover:shadow-lg transition ${className}`}
-    >
-      {/* Image Section */}
-      {image && (
-        <div>
-          <img
-            src={image}
-            alt={title}
-            className={`${imgStyle} w-full h-64 object-cover rounded-lg`}
-          />
+    <div onClick={handleClick} className="cursor-pointer group">
+      <hr className="border-[var(--primary)]" />
+      <div className="flex items-start gap-6 py-8">
+        <p className="w-28 shrink-0 text-xs tracking-wide text-[var(--on-surface-variant)] pt-1">
+          {date}
+        </p>
+
+        <div className="flex-1 min-w-0">
+          <h3 className="text-lg font-bold uppercase tracking-wide leading-snug mb-2 group-hover:underline">
+            {title}
+          </h3>
+          <p className="text-sm text-[var(--on-surface-variant)] leading-relaxed">{desc}</p>
         </div>
-      )}
 
-      {/* Text Section */}
-      <div className="p-2 flex flex-col gap-2">
-        <h3 className="font-mono font-semibold text-lg text-black">{title}</h3>
-        <p className="text-gray-500 text-sm">{date}</p>
-
-        {/* Content Preview */}
-        {content && (
-          <p className="text-gray-700 text-sm line-clamp-1">
-            {content}
-          </p>
-        )}
-
-        {/* Author */}
-        {author && (
-          <p className="text-xs text-gray-400 italic mt-1">By <span className="text-black font-bold ml-1">{author}</span></p>
+        {image && (
+          <div className="shrink-0">
+            <img src={image} alt={title} className="w-52 h-28 object-cover" />
+          </div>
         )}
       </div>
-
-      {/* Optional Delete Button */}
-      {handleClick && (
-        <Button
-          className="text-white rounded-full flex items-center justify-center ml-auto"
-          onClick={(e) => {
-            e.stopPropagation(); // prevent triggering card click
-            handleClick();
-          }}
-        >
-          <Trash2 className="w-4 h-4 stroke-red-400" />
-        </Button>
-      )}
     </div>
   );
 };
