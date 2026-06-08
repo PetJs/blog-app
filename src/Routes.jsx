@@ -1,51 +1,31 @@
 // Routes.tsx
 import { createBrowserRouter } from 'react-router-dom';
 import Layout from './components/Layouts/layout';
-import Dashboard from './pages/Dashboard';
-import MyPost from './pages/MyPosts';
+import Home from './pages/users/Home';
+import Post from './pages/users/Post';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 import RouterErrorBoundary from './components/errors/RouteErrorBoundary';
 import NotFoundPage from './components/errors/NotFoundPage';
-import ProtectedRoute from './utils/ProtectedRoute';
-import CreatePost from './pages/CreatePost';
-import PostDetail from './pages/PostDetail';
 
+const Placeholder = ({ label }) => (
+  <div className="max-w-5xl mx-auto px-6 py-16">
+    <h1 className="font-black uppercase tracking-tight">{label}</h1>
+    <p className="text-xs uppercase tracking-widest text-[var(--on-surface-variant)] mt-4">COMING SOON.</p>
+  </div>
+);
 
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <Layout />, // General layout
+    element: <Layout />,
     errorElement: <RouterErrorBoundary />,
     children: [
-      { 
-        index: true, 
-        element: (
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        ) 
-      },
-      {
-        path: 'myposts',
-        element: (
-          <ProtectedRoute>
-            <MyPost />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "create-post",
-        element: (
-          <ProtectedRoute>
-            <CreatePost />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "posts/:id",
-        element: <PostDetail/>
-      }
+      { index: true, element: <Home /> },
+      { path: 'post/:slug', element: <Post /> },
+      { path: 'archive', element: <Placeholder label="ARCHIVE" /> },
+      { path: 'manifesto', element: <Placeholder label="MANIFESTO" /> },
+      { path: 'admin', element: <Placeholder label="ADMIN" /> },
     ],
   },
   { path: 'login', element: <Login /> },
