@@ -15,7 +15,7 @@ const NavBar = () => {
         <NavLink to="/" end className={linkClass}>INDEX</NavLink>
         <NavLink to="/archive" className={linkClass}>ARCHIVE</NavLink>
         <NavLink to="/manifesto" className={linkClass}>MANIFESTO</NavLink>
-        <NavLink to="/admin" className={linkClass}>ADMIN</NavLink>
+        <NavLink to="/admin/posts" className={linkClass}>ADMIN</NavLink>
       </nav>
 
       <button className="border-0 bg-transparent hover:bg-transparent p-1">
