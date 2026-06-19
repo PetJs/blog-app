@@ -8,7 +8,7 @@ import Dashboard from './pages/admin/Dashboard';
 import Editor from './pages/admin/Editor';
 import RouterErrorBoundary from './components/errors/RouteErrorBoundary';
 import NotFoundPage from './components/errors/NotFoundPage';
-// import { useAuth } from './context/authContext'; // re-enable with AdminGuard when backend is ready
+import { useAuth } from './context/authContext';
 
 const Placeholder = ({ label }) => (
   <div className="max-w-5xl mx-auto px-6 py-16">
@@ -17,11 +17,9 @@ const Placeholder = ({ label }) => (
   </div>
 );
 
-// Redirects to /login if not authenticated
 const AdminGuard = () => {
-  // TODO: re-enable auth check when backend login is ready
-  // const { user } = useAuth();
-  // if (!user) return <Navigate to="/login" replace />;
+  const { user } = useAuth();
+  if (!user) return <Navigate to="/login" replace />;
   return <Outlet />;
 };
 
