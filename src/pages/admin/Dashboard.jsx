@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../../api/axios";
 import AdminLayout from "../../components/Layouts/AdminLayout";
+import ConfirmModal from "../../components/ui/ConfirmModal";
 
 const StatusBadge = ({ status }) =>
   status === "published" ? (
@@ -25,6 +26,7 @@ const Dashboard = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [killTarget, setKillTarget] = useState(null); // id of post pending deletion
   useEffect(() => {
     const fetchPosts = async () => {
       try {
@@ -48,13 +50,15 @@ const Dashboard = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("KILL THIS ENTRY? THIS ACTION IS FINAL.")) return;
+  const handleDelete = async () => {
+    if (!killTarget) return;
     try {
-      await API.delete(`/posts/${id}`);
-      setPosts((prev) => prev.filter((p) => p.id !== id));
+      await API.delete(`/posts/${killTarget}`);
+      setPosts((prev) => prev.filter((p) => p.id !== killTarget));
     } catch {
       setError("KILL_FAILED.");
+    } finally {
+      setKillTarget(null);
     }
   };
 
@@ -155,13 +159,13 @@ const Dashboard = () => {
                         <div className="flex items-center gap-5">
                           <button
                             onClick={() => navigate(`/admin/editor/${post.slug}`)}
-                            className="text-xs font-bold uppercase tracking-widest border-0 bg-transparent p-0 flex items-center gap-1 hover:underline"
+                            className="text-xs font-bold uppercase tracking-widest border-0 bg-transparent px-1 py-0.5 flex items-center gap-1 hover:underline"
                           >
                             ✎ EDIT
                           </button>
                           <button
-                            onClick={() => handleDelete(post.id)}
-                            className="text-xs font-bold uppercase tracking-widest border-0 bg-transparent p-0 text-[var(--error)] hover:underline"
+                            onClick={() => setKillTarget(post.id)}
+                            className="text-xs font-bold uppercase tracking-widest border-0 bg-transparent px-1 py-0.5 text-[var(--error)] hover:underline"
                           >
                             ✕ KILL
                           </button>
@@ -220,6 +224,15 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+      {killTarget && (
+        <ConfirmModal
+          title="KILL THIS ENTRY?"
+          message="This action is final. The post and all its blocks will be permanently deleted from the archive."
+          confirmLabel="KILL"
+          onConfirm={handleDelete}
+          onCancel={() => setKillTarget(null)}
+        />
+      )}
     </AdminLayout>
   );
 };
