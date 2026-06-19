@@ -1,53 +1,50 @@
 import { createContext, useState, useEffect, useContext } from "react";
-import API from "../api/axios";
+import axios from "axios";
+
+// Auth endpoints live at root, not under /api
+const authAPI = axios.create({
+  baseURL: "https://blog-backend-6ilk.onrender.com",
+});
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem("user");
-    return savedUser ? JSON.parse(savedUser) : null;
+    const saved = localStorage.getItem("user");
+    return saved ? JSON.parse(saved) : null;
   });
 
   const [token, setToken] = useState(() => {
-    const savedToken = localStorage.getItem("token");
+    const saved = localStorage.getItem("token");
     const expiry = localStorage.getItem("tokenExpiry");
-
-    if (savedToken && expiry && Date.now() < parseInt(expiry, 10)) {
-      return savedToken;
-    } else {
-      // expired or missing
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      localStorage.removeItem("tokenExpiry");
-      return null;
-    }
+    if (saved && expiry && Date.now() < parseInt(expiry, 10)) return saved;
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("tokenExpiry");
+    return null;
   });
 
-  // login function
   const login = async (email, password) => {
-    const res = await API.post("/login", { email, password });
+    const res = await authAPI.post("/admin/login", { email, password });
+    const jwt = res.data.token;
 
-    const token = res.data.token;
-    const user = res.data.user || { username: "User" }; 
+    // Fetch profile to populate user object
+    const meRes = await authAPI.get("/admin/me", {
+      headers: { Authorization: `Bearer ${jwt}` },
+    });
+    const profile = meRes.data;
 
-    // set expiry (1 hour)
-    const expiry = Date.now() + 60 * 60 * 1000;
+    // JWT is valid 24 h — mirror that expiry locally
+    const expiry = Date.now() + 24 * 60 * 60 * 1000;
 
-    localStorage.setItem("token", token);
-    localStorage.setItem("user", JSON.stringify(user));
+    localStorage.setItem("token", jwt);
+    localStorage.setItem("user", JSON.stringify(profile));
     localStorage.setItem("tokenExpiry", expiry.toString());
 
-    setToken(token);
-    setUser(user);
+    setToken(jwt);
+    setUser(profile);
   };
 
-  // register function
-  const register = async (username, email, password) => {
-    await API.post("/register", { username, email, password });
-  };
-
-  // logout function
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -56,28 +53,19 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   };
 
-  // auto-logout when token expires
+  // Auto-logout when the stored token expires
   useEffect(() => {
     if (!token) return;
-
     const expiry = localStorage.getItem("tokenExpiry");
     if (!expiry) return;
-
-    const remainingTime = parseInt(expiry, 10) - Date.now();
-
-    if (remainingTime <= 0) {
-      logout();
-    } else {
-      const timer = setTimeout(() => {
-        logout();
-      }, remainingTime);
-
-      return () => clearTimeout(timer); // cleanup
-    }
+    const remaining = parseInt(expiry, 10) - Date.now();
+    if (remaining <= 0) { logout(); return; }
+    const timer = setTimeout(logout, remaining);
+    return () => clearTimeout(timer);
   }, [token]);
 
   return (
-    <AuthContext.Provider value={{ user, token, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, login, logout }}>
       {children}
     </AuthContext.Provider>
   );
