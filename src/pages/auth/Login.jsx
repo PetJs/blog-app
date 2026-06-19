@@ -21,7 +21,7 @@ const Login = () => {
     e.preventDefault();
     try {
       await login(email, password);
-      navigate("/");
+      navigate("/admin/posts");
     } catch (err) {
       alert("Invalid credentials");
     }
