@@ -28,15 +28,10 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const res = await API.get("/admin/posts");
+        const res = await API.get("/posts");
         setPosts(Array.isArray(res.data) ? res.data : []);
       } catch {
-        try {
-          const res = await API.get("/posts");
-          setPosts(Array.isArray(res.data) ? res.data : []);
-        } catch {
-          setError("FAILED_TO_LOAD_REGISTRY.");
-        }
+        setError("FAILED_TO_LOAD_REGISTRY.");
       } finally {
         setLoading(false);
       }
