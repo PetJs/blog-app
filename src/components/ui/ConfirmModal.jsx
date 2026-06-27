@@ -8,7 +8,7 @@ const ConfirmModal = ({ title, message, confirmLabel = "CONFIRM", onConfirm, onC
       />
 
       {/* Modal */}
-      <div className="relative bg-[var(--on-primary)] border border-[var(--primary)] w-full max-w-sm mx-4">
+      <div className="relative bg-[var(--on-primary)] border border-[var(--primary)] w-full max-w-lg mx-4">
         {/* Header */}
         <div className="border-b border-[var(--primary)] px-6 py-4">
           <p className="text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
