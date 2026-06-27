@@ -562,7 +562,7 @@ const Editor = () => {
 
       {/* ── Editor body */}
       <div className="flex-1">
-        <div className="max-w-2xl mx-auto px-8 py-12">
+        <div className="max-w-6xl mx-auto px-8 py-10">
           {/* Cover image */}
           {post?.cover_image ? (
             <div className="mb-6 relative group/cover">

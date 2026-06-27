@@ -159,13 +159,13 @@ const Dashboard = () => {
                         <div className="flex items-center gap-5">
                           <button
                             onClick={() => navigate(`/admin/editor/${post.slug}`)}
-                            className="text-xs font-bold uppercase tracking-widest border-0 bg-transparent px-1 py-0.5 flex items-center gap-1 hover:underline"
+                            className="text-xs font-bold uppercase tracking-widest border-0 bg-transparent px-1 py-0.5 flex items-center gap-1"
                           >
                             ✎ EDIT
                           </button>
                           <button
                             onClick={() => setKillTarget(post.id)}
-                            className="text-xs font-bold uppercase tracking-widest border-0 bg-transparent px-1 py-0.5 text-[var(--error)] hover:underline"
+                            className="text-xs font-bold uppercase tracking-widest border-0 bg-transparent px-1 py-0.5 text-[var(--error)]"
                           >
                             ✕ KILL
                           </button>

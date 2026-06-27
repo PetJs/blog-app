@@ -61,7 +61,7 @@ const AdminLayout = ({ children }) => {
               <LayoutDashboard size={13} />
               DASHBOARD
             </NavLink>
-            <NavLink to="/admin/posts" className={sideLinkClass}>
+            <NavLink to="/admin/analytics" className={sideLinkClass}>
               <FileText size={13} />
               POSTS
             </NavLink>
