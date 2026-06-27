@@ -19,6 +19,10 @@ function blocksToBody(blocks) {
         }
         case "audio": {
           const d = parseJSON(block.content, { label: "AUDIO", caption: "" });
+          // Voice recordings show their transcript as plain text; uploaded audio files get a player
+          if (d.label === "VOICE_RECORDING") {
+            return { type: "paragraph", content: d.caption };
+          }
           return { type: "audio", label: d.label, caption: d.caption, src: block.original_audio_url };
         }
         case "gallery":
@@ -86,7 +90,7 @@ const AudioPlayer = ({ label, caption, src }) => {
   );
 };
 
-// ── Voice bar shown at top when a voice mode is active ──────────────────────
+// ── Voice bar — plays creator audio blocks in sequence ───────────────────────
 
 const VoiceBar = ({ mode, aiUrl, creatorUrls, onClose }) => {
   const audioRef = useRef(null);
@@ -107,11 +111,8 @@ const VoiceBar = ({ mode, aiUrl, creatorUrls, onClose }) => {
   const toggle = () => {
     const audio = audioRef.current;
     if (!audio) return;
-    if (playing) {
-      audio.pause();
-    } else {
-      audio.play().catch(() => {});
-    }
+    if (playing) audio.pause();
+    else audio.play().catch(() => {});
   };
 
   const handleEnded = () => {
@@ -122,10 +123,12 @@ const VoiceBar = ({ mode, aiUrl, creatorUrls, onClose }) => {
     }
   };
 
-  const modeLabel =
+  const label =
     mode === "ai"
       ? "AI_VOICE // READ_ALOUD"
-      : `CREATOR_VOICE${urls.length > 1 ? ` // PART ${idx + 1} OF ${urls.length}` : ""}`;
+      : urls.length > 1
+      ? `CREATOR_VOICE // PART ${idx + 1} OF ${urls.length}`
+      : "CREATOR_VOICE // READING";
 
   return (
     <div className="sticky top-0 z-10 border-b border-[var(--on-primary)] bg-[var(--primary)] text-[var(--on-primary)] px-6 py-3 flex items-center gap-4">
@@ -135,7 +138,7 @@ const VoiceBar = ({ mode, aiUrl, creatorUrls, onClose }) => {
       >
         {playing ? "▐▐" : "▶"}
       </button>
-      <p className="flex-1 text-[10px] uppercase tracking-widest opacity-80">{modeLabel}</p>
+      <p className="flex-1 text-[10px] uppercase tracking-widest opacity-80">{label}</p>
       <button
         onClick={onClose}
         className="text-xs font-bold uppercase tracking-widest border border-[var(--on-primary)] px-3 py-1 bg-transparent text-[var(--on-primary)] hover:bg-[var(--on-primary)] hover:text-[var(--primary)]"
@@ -242,16 +245,16 @@ const Post = () => {
     ? new Date(post.created_at).toISOString().slice(0, 10).replace(/-/g, ".")
     : "—";
 
+  // Collect original_audio_url from every audio block that has one
   const creatorAudioUrls = (post.blocks || [])
-    .filter((b) => b.original_audio_url)
+    .filter((b) => b.type === "audio" && b.original_audio_url)
     .sort((a, b) => a.position - b.position)
     .map((b) => b.original_audio_url);
+
   const hasCreatorVoice = creatorAudioUrls.length > 0;
-  const hasAIVoice = !!post.elevenlabs_audio_url;
 
   return (
     <div className="max-w-6xl mx-auto py-10">
-      {/* Voice bar — shown when a mode is active */}
       {voiceMode && (
         <VoiceBar
           mode={voiceMode}
@@ -268,24 +271,19 @@ const Post = () => {
         <div className="flex items-center gap-3 flex-wrap">
           <p className="text-xs uppercase tracking-widest">EST. READ: {readTime}</p>
 
-          {/* READ ALOUD — always shown if AI audio exists, or as fallback */}
-          {(hasAIVoice || (!hasAIVoice && !hasCreatorVoice)) && (
-            <button
-              onClick={() =>
-                hasAIVoice ? setVoiceMode(voiceMode === "ai" ? null : "ai") : undefined
-              }
-              disabled={!hasAIVoice}
-              className={`text-xs uppercase tracking-widest px-3 py-1 border border-[var(--primary)] ${
-                voiceMode === "ai"
-                  ? "bg-[var(--primary)] text-[var(--on-primary)]"
-                  : "bg-transparent hover:bg-[var(--primary)] hover:text-[var(--on-primary)] disabled:opacity-40 disabled:cursor-not-allowed"
-              }`}
-            >
-              ▶ READ ALOUD
-            </button>
-          )}
+          {/* READ ALOUD — AI voice, always visible */}
+          <button
+            onClick={() => post.elevenlabs_audio_url && setVoiceMode(voiceMode === "ai" ? null : "ai")}
+            className={`text-xs uppercase tracking-widest px-3 py-1 border border-[var(--primary)] ${
+              voiceMode === "ai"
+                ? "bg-[var(--primary)] text-[var(--on-primary)]"
+                : "bg-transparent hover:bg-[var(--primary)] hover:text-[var(--on-primary)]"
+            } ${!post.elevenlabs_audio_url ? "opacity-40 cursor-not-allowed" : ""}`}
+          >
+            ▶ READ ALOUD
+          </button>
 
-          {/* READ WITH CREATOR VOICE — only if post has recorded audio blocks */}
+          {/* READ WITH CREATOR VOICE — shown when any audio block has original_audio_url */}
           {hasCreatorVoice && (
             <button
               onClick={() => setVoiceMode(voiceMode === "creator" ? null : "creator")}

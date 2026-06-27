@@ -109,7 +109,7 @@ const ImageEditor = ({ block, onSave }) => {
   );
 };
 
-const AudioEditor = ({ block, onSave }) => {
+const AudioEditor = ({ block, onSave, onFinalize }) => {
   const [data, setData] = useState(() => parseJSON(block.content, { label: "", caption: "" }));
   const [mode, setMode] = useState("upload"); // "upload" | "record"
   const [recState, setRecState] = useState("idle"); // "idle" | "recording" | "processing"
@@ -141,7 +141,13 @@ const AudioEditor = ({ block, onSave }) => {
         transcribeRes.status === "fulfilled" ? transcribeRes.value.data.transcript : "";
       const next = { label: file.name.toUpperCase(), caption: transcript };
       setData(next);
-      onSave(JSON.stringify(next), { original_audio_url: audioUrl });
+      const content = JSON.stringify(next);
+      const extra = { original_audio_url: audioUrl };
+      if (onFinalize) {
+        onFinalize(content, extra);
+      } else {
+        onSave(content, extra);
+      }
     } catch {
       setErr("UPLOAD_FAILED.");
     } finally {
@@ -197,7 +203,13 @@ const AudioEditor = ({ block, onSave }) => {
               : liveTextRef.current;
           const next = { label: "VOICE_RECORDING", caption: finalText };
           setData(next);
-          onSave(JSON.stringify(next), { original_audio_url: audioUrl });
+          const content = JSON.stringify(next);
+          const extra = { original_audio_url: audioUrl };
+          if (onFinalize) {
+            onFinalize(content, extra);
+          } else {
+            onSave(content, extra);
+          }
         } catch {
           setErr("PROCESSING_FAILED.");
         } finally {
@@ -475,13 +487,13 @@ const BLOCK_LABELS = {
   blockquote: "QUOTE",
 };
 
-const BlockEditor = ({ block, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst, isLast }) => {
+const BlockEditor = ({ block, onUpdate, onDelete, onMoveUp, onMoveDown, isFirst, isLast, onFinalize }) => {
   const id = block.id ?? block.tempId;
 
   const editors = {
     text: <TextEditor block={block} onSave={(c) => onUpdate(id, c)} />,
     image: <ImageEditor block={block} onSave={(c) => onUpdate(id, c)} />,
-    audio: <AudioEditor block={block} onSave={(c, ex) => onUpdate(id, c, ex)} />,
+    audio: <AudioEditor block={block} onSave={(c, ex) => onUpdate(id, c, ex)} onFinalize={onFinalize} />,
     gallery: <GalleryEditor block={block} onSave={(c) => onUpdate(id, c)} />,
     list: <ListEditor block={block} onSave={(c) => onUpdate(id, c)} />,
     blockquote: <BlockquoteEditor block={block} onSave={(c) => onUpdate(id, c)} />,
@@ -616,9 +628,29 @@ const Editor = () => {
     const tempId = `temp_${Date.now()}`;
     const content = getDefaultContent(type);
     const position = blocks.length;
-    setBlocks((prev) => [...prev, { tempId, type, content, position }]);
+    // Audio blocks are held as pending until upload/record finishes so
+    // original_audio_url can be included in the creation POST
+    setBlocks((prev) => [...prev, { tempId, type, content, position, isPending: type === "audio" }]);
+    if (type === "audio") return;
     try {
       const res = await API.post(`/posts/${post.id}/blocks`, { type, content, position });
+      setBlocks((prev) => prev.map((b) => (b.tempId === tempId ? res.data : b)));
+    } catch {
+      setError("ADD_BLOCK_FAILED.");
+      setBlocks((prev) => prev.filter((b) => b.tempId !== tempId));
+    }
+  };
+
+  // Called by AudioEditor when audio is ready — creates the block with original_audio_url
+  const createAudioBlock = async (tempId, content, extra = {}) => {
+    const position = blocks.findIndex((b) => b.tempId === tempId);
+    try {
+      const res = await API.post(`/posts/${post.id}/blocks`, {
+        type: "audio",
+        content,
+        position: position >= 0 ? position : blocks.length,
+        ...extra,
+      });
       setBlocks((prev) => prev.map((b) => (b.tempId === tempId ? res.data : b)));
     } catch {
       setError("ADD_BLOCK_FAILED.");
@@ -786,6 +818,11 @@ const Editor = () => {
                 onMoveDown={() => moveBlock(block.id ?? block.tempId, "down")}
                 isFirst={idx === 0}
                 isLast={idx === blocks.length - 1}
+                onFinalize={
+                  block.isPending
+                    ? (c, ex) => createAudioBlock(block.tempId, c, ex)
+                    : undefined
+                }
               />
             ))}
           </div>
