@@ -111,30 +111,34 @@ const ImageEditor = ({ block, onSave }) => {
 
 const AudioEditor = ({ block, onSave }) => {
   const [data, setData] = useState(() => parseJSON(block.content, { label: "", caption: "" }));
+  const [mode, setMode] = useState("upload"); // "upload" | "record"
+  const [recState, setRecState] = useState("idle"); // "idle" | "recording" | "processing"
+  const [liveText, setLiveText] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [transcribing, setTranscribing] = useState(false);
   const [err, setErr] = useState(null);
   const fileRef = useRef();
+  const mediaRef = useRef(null);
+  const streamRef = useRef(null);
+  const chunksRef = useRef([]);
+  const liveTextRef = useRef("");
 
   const handleFile = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setErr(null);
     setUploading(true);
-
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-
+      const uploadFd = new FormData();
+      uploadFd.append("file", file);
+      const transcribeFd = new FormData();
+      transcribeFd.append("file", file);
       const [uploadRes, transcribeRes] = await Promise.allSettled([
-        API.post("/upload", fd),
-        API.post("/transcribe", fd),
+        API.post("/upload", uploadFd),
+        API.post("/transcribe", transcribeFd),
       ]);
-
       const audioUrl = uploadRes.status === "fulfilled" ? uploadRes.value.data.url : "";
       const transcript =
         transcribeRes.status === "fulfilled" ? transcribeRes.value.data.transcript : "";
-
       const next = { label: file.name.toUpperCase(), caption: transcript };
       setData(next);
       onSave(JSON.stringify(next), { original_audio_url: audioUrl });
@@ -142,44 +146,212 @@ const AudioEditor = ({ block, onSave }) => {
       setErr("UPLOAD_FAILED.");
     } finally {
       setUploading(false);
-      setTranscribing(false);
     }
   };
 
-  if (!data.label) {
+  const startRecording = async () => {
+    setErr(null);
+    setLiveText("");
+    liveTextRef.current = "";
+    chunksRef.current = [];
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      const recorder = new MediaRecorder(stream);
+      mediaRef.current = recorder;
+
+      recorder.ondataavailable = async (e) => {
+        if (e.data.size === 0) return;
+        chunksRef.current.push(e.data);
+        // Send all accumulated chunks so Whisper has full context each time
+        try {
+          const blob = new Blob(chunksRef.current, { type: e.data.type || "audio/webm" });
+          const fd = new FormData();
+          fd.append("file", blob, "recording.webm");
+          const res = await API.post("/transcribe", fd);
+          if (res.data?.transcript) {
+            liveTextRef.current = res.data.transcript;
+            setLiveText(res.data.transcript);
+          }
+        } catch {
+          // silent — carry on with existing text
+        }
+      };
+
+      recorder.onstop = async () => {
+        setRecState("processing");
+        const finalBlob = new Blob(chunksRef.current, { type: "audio/webm" });
+        try {
+          const uploadFd = new FormData();
+          uploadFd.append("file", finalBlob, "recording.webm");
+          const transcribeFd = new FormData();
+          transcribeFd.append("file", finalBlob, "recording.webm");
+          const [uploadRes, transcribeRes] = await Promise.allSettled([
+            API.post("/upload", uploadFd),
+            API.post("/transcribe", transcribeFd),
+          ]);
+          const audioUrl = uploadRes.status === "fulfilled" ? uploadRes.value.data.url : "";
+          const finalText =
+            transcribeRes.status === "fulfilled"
+              ? transcribeRes.value.data.transcript
+              : liveTextRef.current;
+          const next = { label: "VOICE_RECORDING", caption: finalText };
+          setData(next);
+          onSave(JSON.stringify(next), { original_audio_url: audioUrl });
+        } catch {
+          setErr("PROCESSING_FAILED.");
+        } finally {
+          setRecState("idle");
+          stream.getTracks().forEach((t) => t.stop());
+        }
+      };
+
+      recorder.start(3000); // fire ondataavailable every 3 s
+      setRecState("recording");
+    } catch {
+      setErr("MIC_ACCESS_DENIED.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRef.current && mediaRef.current.state !== "inactive") {
+      mediaRef.current.stop();
+    }
+  };
+
+  // ── Content saved state
+  if (data.label) {
     return (
-      <div>
-        {err && <p className="text-xs text-[var(--error)] mb-2">{err}</p>}
-        <input type="file" ref={fileRef} onChange={handleFile} accept="audio/*" className="hidden" />
-        <button
-          onClick={() => fileRef.current.click()}
-          disabled={uploading}
-          className="w-full border border-dashed border-[var(--outline)] p-10 text-xs uppercase tracking-widest text-[var(--on-surface-variant)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
-        >
-          {uploading ? "UPLOADING + TRANSCRIBING..." : "+ ADD_AUDIO"}
-        </button>
+      <div className="border border-[var(--primary)] p-4">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-8 h-8 shrink-0 bg-[var(--primary)] flex items-center justify-center text-[var(--on-primary)] text-xs">
+            ▶
+          </div>
+          <p className="text-xs font-bold uppercase tracking-widest flex-1">{data.label}</p>
+          {data.label === "VOICE_RECORDING" && (
+            <span className="text-[10px] uppercase tracking-widest text-[var(--on-surface-variant)] border border-[var(--outline-variant)] px-2 py-0.5">
+              CREATOR_VOICE
+            </span>
+          )}
+        </div>
+        <textarea
+          value={data.caption}
+          onChange={(e) => setData((p) => ({ ...p, caption: e.target.value }))}
+          onBlur={() => onSave(JSON.stringify(data))}
+          placeholder="TRANSCRIPT / CAPTION..."
+          rows={4}
+          className="w-full text-xs bg-[var(--surface-container-low)] p-3 border-0 outline-none font-mono resize-none"
+        />
+        <label className="mt-2 inline-block cursor-pointer text-xs uppercase tracking-widest text-[var(--on-surface-variant)] hover:underline">
+          REPLACE_AUDIO
+          <input type="file" accept="audio/*" onChange={handleFile} className="hidden" />
+        </label>
       </div>
     );
   }
 
+  // ── Empty state: mode selector
   return (
-    <div className="border border-[var(--primary)] p-4">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-8 h-8 shrink-0 bg-[var(--primary)] flex items-center justify-center text-[var(--on-primary)] text-xs">▶</div>
-        <p className="text-xs font-bold uppercase tracking-widest">{data.label}</p>
+    <div>
+      {err && <p className="text-xs text-[var(--error)] mb-2">{err}</p>}
+      <div className="border border-[var(--primary)]">
+        {/* Tabs */}
+        <div className="flex border-b border-[var(--primary)]">
+          {[
+            { key: "upload", label: "UPLOAD_FILE" },
+            { key: "record", label: "● RECORD" },
+          ].map(({ key, label }, i) => (
+            <button
+              key={key}
+              onClick={() => setMode(key)}
+              className={`flex-1 py-2 text-xs font-bold uppercase tracking-widest border-0 ${
+                i > 0 ? "border-l border-[var(--primary)]" : ""
+              } ${
+                mode === key
+                  ? "bg-[var(--primary)] text-[var(--on-primary)]"
+                  : "bg-transparent text-[var(--primary)] hover:bg-[var(--surface-container-low)]"
+              }`}
+              style={i > 0 ? { borderLeft: "1px solid var(--primary)" } : {}}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Panel */}
+        <div className="p-6">
+          {mode === "upload" ? (
+            <>
+              <input
+                type="file"
+                ref={fileRef}
+                onChange={handleFile}
+                accept="audio/*"
+                className="hidden"
+              />
+              <button
+                onClick={() => fileRef.current.click()}
+                disabled={uploading}
+                className="w-full py-4 text-xs uppercase tracking-widest text-[var(--on-surface-variant)] border-0 bg-transparent hover:text-[var(--primary)]"
+              >
+                {uploading ? "UPLOADING + TRANSCRIBING..." : "+ ADD_AUDIO_FILE"}
+              </button>
+            </>
+          ) : (
+            <div className="space-y-4">
+              {recState === "idle" && (
+                <button
+                  onClick={startRecording}
+                  className="w-full py-4 text-xs font-bold uppercase tracking-widest border border-[var(--primary)] bg-transparent hover:bg-[var(--primary)] hover:text-[var(--on-primary)]"
+                >
+                  ● START_RECORDING
+                </button>
+              )}
+
+              {recState === "recording" && (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-block w-2 h-2 rounded-full animate-pulse"
+                        style={{ backgroundColor: "var(--error)" }}
+                      />
+                      <span
+                        className="text-xs font-bold uppercase tracking-widest"
+                        style={{ color: "var(--error)" }}
+                      >
+                        REC
+                      </span>
+                    </div>
+                    <button
+                      onClick={stopRecording}
+                      className="text-xs font-bold uppercase tracking-widest px-4 py-2 border-0 bg-[var(--primary)] text-[var(--on-primary)]"
+                    >
+                      ■ STOP
+                    </button>
+                  </div>
+                  <div className="bg-[var(--surface-container-low)] p-4 min-h-[80px]">
+                    <p className="text-[10px] uppercase tracking-widest text-[var(--on-surface-variant)] mb-2">
+                      LIVE_TRANSCRIPT //
+                    </p>
+                    <p className="text-sm font-mono leading-relaxed">
+                      {liveText || (
+                        <span className="text-[var(--outline-variant)]">SPEAK TO BEGIN...</span>
+                      )}
+                    </p>
+                  </div>
+                </>
+              )}
+
+              {recState === "processing" && (
+                <p className="text-xs uppercase tracking-widest text-[var(--on-surface-variant)] text-center py-6">
+                  PROCESSING_AUDIO...
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-      <textarea
-        value={data.caption}
-        onChange={(e) => setData((p) => ({ ...p, caption: e.target.value }))}
-        onBlur={() => onSave(JSON.stringify(data))}
-        placeholder="TRANSCRIPT / CAPTION..."
-        rows={3}
-        className="w-full text-xs bg-[var(--surface-container-low)] p-3 border-0 outline-none font-mono resize-none"
-      />
-      <label className="mt-2 inline-block cursor-pointer text-xs uppercase tracking-widest text-[var(--on-surface-variant)] hover:underline">
-        REPLACE_AUDIO
-        <input type="file" accept="audio/*" onChange={handleFile} className="hidden" />
-      </label>
     </div>
   );
 };
@@ -504,6 +676,7 @@ const Editor = () => {
       await API.patch(`/posts/${post.id}/publish`);
       setPost((p) => ({ ...p, status: "published" }));
       setPublishedOk(true);
+      setTimeout(() => navigate("/admin/posts"), 1000);
     } catch {
       setError("PUBLISH_FAILED.");
     }
